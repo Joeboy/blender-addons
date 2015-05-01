@@ -1,4 +1,4 @@
-all : libsyncaudio.so
+all : syncaudio
 CC = gcc
 CFLAGS = -std=c99
 LDFLAGS = `pkg-config --libs sndfile fftw3f samplerate`
