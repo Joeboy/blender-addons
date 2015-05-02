@@ -1,16 +1,22 @@
 #include <math.h>
 #include <malloc.h>
 #include <string.h>
+#include <stdlib.h>
 
 #include "sndfile.h"
 
 #include "shenidam.h"
-#include "syncaudio.h"
 
 
 #define NUM_THREADS 1
 #define SRC_CONVERTER SRC_SINC_FASTEST
 
+typedef struct {
+    char errmsg[64];
+    unsigned int sample_rate;
+    int lag_samples;
+    float lag_seconds;
+} lagestimationstatus;
 
 static int read_sndfile_average(SNDFILE* sndfile,SF_INFO* info,float** result)
 {

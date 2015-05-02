@@ -1,3 +1,45 @@
-This code is based on shenidam by Nabil Stendardo. The primary purpose
-is to provide a convenient interface to shenidam from Blender's Video Sequence
-Editor.
+SyncAudio
+=========
+
+This code is based on shenidam by Nabil Stendardo. The primary purpose is to
+provide a convenient Blender add-on wrapper to shenidam from Blender's Video
+Sequence Editor.
+
+Usage
+-----
+
+Once you have it built, installed and enabled, use it as follows:
+
+Go to Blender's VSE, select an audio strip to align to, then select an audio
+strip to align. Then press space, then type "Sync Audio". Hopefully, the second
+strip you selected will now be aligned to the first.
+
+
+Building
+--------
+
+To build it, first make sure you have shenidam built and installed. Clone it
+from git@github.com:stendardo/shenidam.git. You may find you have to modify the
+code slightly to get it to build:
+
+In shenidam_main.cpp, remove or comment out:
+
+    #include "boost/thread.hpp"
+
+change
+
+    num_threads = boost::thread::hardware_concurrency();
+
+to
+
+    num_threads = 1;
+
+Make sure you have the dev packages installed for sndfile, fftw3 and
+samplerate, eg by:
+
+    apt-get install libsndfile-dev libsamplerate-dev libfftw3-dev
+
+Build syncaudio by simply typing "make". I say simply, although obviously lots
+of stuff will go wrong, because that's the way the world is.
+
+Good luck!
