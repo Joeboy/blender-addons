@@ -57,8 +57,14 @@ class SyncAudio(bpy.types.Operator):
 
         return {'FINISHED'}
 
+
+def menu_func(self, context):
+    self.layout.operator(SyncAudio.bl_idname)
+
+
 def register():
     bpy.utils.register_class(SyncAudio)
+    bpy.types.SEQUENCER_MT_strip.append(menu_func)
 
 
 def unregister():
