@@ -1,25 +1,26 @@
 SyncAudio
 =========
 
-This code is based on shenidam by Nabil Stendardo. The primary purpose is to
-provide a convenient Blender add-on wrapper to shenidam from Blender's Video
-Sequence Editor.
+This code is based on Shenidam by Nabil Stendardo. The primary purpose is to
+provide a convenient Blender add-on wrapper for libshenidam from Blender's
+Video Sequence Editor, making it easy to sync external mic audio to camera
+audio.
 
-Usage
------
-
-Once you have it built, installed and enabled, use it as follows:
-
-Go to Blender's VSE, select an audio strip to align to, then select an audio
-strip to align. Then press space, then type "Sync Audio". Hopefully, the second
-strip you selected will now be aligned to the first.
+Cheap video cameras typically record audio along with the footage, but for
+various reasons it often ends up being of fairly poor quality.  It's therefore
+common to record additional audio using an external mic/recorder, but unless
+you have an expensive timecode system this will be out of sync with the
+footage. Using this add-on, you can easily sync your external audio to the
+camera audio, and thereby to the footage. This works via something called
+cross-correlation, which the author of Shenidam probably understands much
+better than I do.
 
 
 Building
 --------
 
-To build it, first make sure you have shenidam built and installed. Clone it
-from git@github.com:stendardo/shenidam.git. You may find you have to modify the
+First make sure you have Shenidam built and installed. Clone it from
+git@github.com:stendardo/shenidam.git. You may find you have to modify the
 code slightly to get it to build:
 
 In shenidam_main.cpp, remove or comment out:
@@ -32,14 +33,26 @@ change
 
 to
 
-    num_threads = 1;
+    num_threads = 1; // or use the number of CPU cores you have
 
 Make sure you have the dev packages installed for sndfile, fftw3 and
 samplerate, eg by:
 
     apt-get install libsndfile-dev libsamplerate-dev libfftw3-dev
 
-Build syncaudio by simply typing "make". I say simply, although obviously lots
-of stuff will go wrong, because that's the way the world is.
+Build syncaudio by simply typing "make" while in the syncaudio folder. This
+works on my machine, which runs Ubuntu 15.04. I guess it should be fairly easy
+to make it work on other Linuxes, no idea about Windows or OSX.
 
-Good luck!
+Then you'll need to copy it to, or symlink it from, your Blender addons folder
+and enable it via Blender's User Preferences->Add-ons window.
+
+
+Usage
+-----
+
+Once you have it built, installed and enabled, use it as follows:
+
+Go to Blender's VSE, select an audio strip to align to, then select an audio
+strip to align. Then press space, then type "Sync Audio". Hopefully, the second
+strip you selected will now be synced to the first.
