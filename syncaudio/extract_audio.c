@@ -11,7 +11,7 @@ static void die(const char *msg){
 }
 
 
-int extract_audio(char *input_filename,
+int extract_audio(const char *input_filename,
                 void (*audio_callback)(float*, size_t, AVCodecContext*, void*),
                 void *user_data) {
     // Read <input_filename>, which should be an audio or video file containing
@@ -139,6 +139,7 @@ int extract_audio(char *input_filename,
 
     avcodec_close(pCodecCtx);
     avformat_free_context(pFormatCtx);
+    av_frame_free(&frame);
     free(buffer);
     free(out);
     return 0;

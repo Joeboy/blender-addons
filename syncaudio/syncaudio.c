@@ -1,83 +1,100 @@
-#include <math.h>
-#include <malloc.h>
-#include <string.h>
-#include <stdlib.h>
+#include <shenidam.h>
 
-#include "sndfile.h"
-
-#include "shenidam.h"
-
+#include "extract_audio.h"
 
 #define NUM_THREADS 1
 #define SRC_CONVERTER SRC_SINC_FASTEST
 
+
 typedef struct {
-    char errmsg[64];
+    char errmsg[128];
     unsigned int sample_rate;
     int lag_samples;
     float lag_seconds;
-} lagestimationstatus;
+} LagEstimationStatus;
 
-static int read_sndfile_average(SNDFILE* sndfile,SF_INFO* info,float** result) {
-    // point result to a buffer of floats representing a single audio channel,
-    // containing the averaged audio values of the audio channels found in
-    // sndfile
-    unsigned int chunk_size = 1024;
-    size_t num_chunks = (size_t) ceil((float)info->frames/chunk_size);
-    float *res = *result =(float*) malloc(sizeof(float)*num_chunks*chunk_size);
-    float* frame = (float*)malloc(sizeof(float)*info->channels*chunk_size);
 
-    for (int chunk = 0; chunk < num_chunks;chunk++) {
-        sf_readf_float(sndfile,frame,chunk_size);
-        for (int k = 0; k < chunk_size; k++) {
-            float s = 0;
-            for (int j = 0 ; j < info->channels; j++) {
-                s+=frame[k*info->channels + j];
-            }
-            res[chunk*chunk_size+k]=s/info->channels;
-        }
+typedef struct {
+    const char *filename;
+    float *averaged_audio_data;
+    unsigned int averaged_audio_ptr;
+    unsigned int sample_rate;
+} AudioExtraction;
+
+
+static void audio_callback(float *audiodata, size_t audiolen, AVCodecContext *codecCtx, void *extra_data) {
+    // read an incoming buffer of float audio data, average the channels, write the results into a buffer
+    AudioExtraction *audio_extraction = (AudioExtraction*)extra_data;
+
+    if (audio_extraction->averaged_audio_data == NULL) {
+        //TODO: Use realloc, be less stupid
+        audio_extraction->averaged_audio_data = malloc(sizeof(float) * 10000000);
     }
-    free(frame);
-    return 0;
+
+    float total;
+    for (int i=0;i<audiolen;i+=codecCtx->channels) {
+        total = 0;
+        for (int j=0;j<codecCtx->channels;j++) {
+            total += audiodata[i + j];
+        }
+        audio_extraction->averaged_audio_data[audio_extraction->averaged_audio_ptr++] = total / codecCtx->channels;
+    }
+    audio_extraction->sample_rate = codecCtx->sample_rate;
 }
 
-void estimate_lag(const char* base_audiofilename, const char* audiofile_1, lagestimationstatus *les) {
-    SF_INFO base_info;
-    memset(&base_info,0,sizeof(SF_INFO));
+static void read_audio_data(AudioExtraction *audio_extraction) {
+    audio_extraction->averaged_audio_data = NULL;
+    audio_extraction->averaged_audio_ptr = 0;
+    extract_audio(audio_extraction->filename, audio_callback, audio_extraction);
+}
 
-    SNDFILE* base = sf_open(base_audiofilename,SFM_READ,&base_info);
-    if (base == NULL)
-    {
-        strcpy(les->errmsg, "Failed to load base audio file");
-        return;
-    }
-    les->sample_rate = base_info.samplerate;
-    shenidam_t processor = shenidam_create(base_info.samplerate,NUM_THREADS);
-    shenidam_set_resampling_quality(processor,SRC_CONVERTER);
-    float* base_b;
-    read_sndfile_average(base,&base_info,&base_b);
-    shenidam_set_base_audio(processor,FORMAT_SINGLE,(void*)base_b,base_info.frames,(double)base_info.samplerate);
-    free(base_b);
+void estimate_lag(const char* base_audiofile_name, const char* track_audiofile_name, LagEstimationStatus *les) {
+    // Try to calculate the lag between base_audiofile_name and track_audiofile_name.
+    // Store the answer in seconds and samples, along with some other data, in the
+    // LagEstimationStatus struction <les>.
+    unsigned int nframes_base, nframes_track;
+    AudioExtraction base_audio_extraction, track_audio_extraction;
 
+    base_audio_extraction.filename = base_audiofile_name;
+    read_audio_data(&base_audio_extraction);
+    nframes_base = base_audio_extraction.averaged_audio_ptr;
+
+    les->sample_rate = base_audio_extraction.sample_rate;
+    shenidam_t processor = shenidam_create(base_audio_extraction.sample_rate, NUM_THREADS);
+    shenidam_set_resampling_quality(processor, SRC_CONVERTER);
+    shenidam_set_base_audio(
+        processor,
+        FORMAT_SINGLE,
+        (void*)base_audio_extraction.averaged_audio_data,
+        nframes_base,
+        (double)base_audio_extraction.sample_rate
+    );
+
+    
+    track_audio_extraction.filename = track_audiofile_name;
+    read_audio_data(&track_audio_extraction);
+    nframes_track = track_audio_extraction.averaged_audio_ptr;
     size_t length;
     int in;
-    SF_INFO track_info;
-    memset(&track_info,0,sizeof(SF_INFO));
-    float* track_b;
-    SNDFILE* track = sf_open(audiofile_1,SFM_READ,&track_info);
-    read_sndfile_average(track,&track_info,&track_b);
-    sf_close(track);
-    if (shenidam_get_audio_range(processor,FORMAT_SINGLE,(void*)track_b,track_info.frames,(double)track_info.samplerate,&in,&length)) {
+    if (shenidam_get_audio_range(
+            processor,
+            FORMAT_SINGLE,
+            (void*)track_audio_extraction.averaged_audio_data,
+            nframes_track,
+            (double)track_audio_extraction.sample_rate,
+            &in,
+            &length)) {
         strcpy(les->errmsg, "ERROR: Error mapping track to base .\n");
-        free(track);
     }
     les->lag_samples = in;
-    les->lag_seconds = (float)in / base_info.samplerate;
-    return;
+    les->lag_seconds = (float)in / base_audio_extraction.sample_rate;
+    free(base_audio_extraction.averaged_audio_data);
+    free(track_audio_extraction.averaged_audio_data);
 }
 
+
 int main (int argc, char** argv) {
-    // This is intended to be called from python via subprocess.check_output,
+    // This is intended to be called from python via subprocess.check_output(),
     // so it eschews convention and prints a parsable message to stdout, and
     // never returns an error code.
     if (argc != 3) {
@@ -85,7 +102,7 @@ int main (int argc, char** argv) {
         exit(0);
     }
 
-    lagestimationstatus les;
+    LagEstimationStatus les;
     les.lag_seconds = les.lag_samples = 0;
     les.errmsg[0] = 0;
     les.sample_rate = 0;
