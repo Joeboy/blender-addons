@@ -18,24 +18,23 @@ typedef struct {
     float lag_seconds;
 } lagestimationstatus;
 
-static int read_sndfile_average(SNDFILE* sndfile,SF_INFO* info,float** result)
-{
-    size_t n = (size_t) ceil(info->frames/1024.0);
-    float *res = *result =(float*) malloc(sizeof(float)*n*1024);
-    float* frame = (float*)malloc(sizeof(float)*info->channels*1024);
+static int read_sndfile_average(SNDFILE* sndfile,SF_INFO* info,float** result) {
+    // point result to a buffer of floats representing a single audio channel,
+    // containing the averaged audio values of the audio channels found in
+    // sndfile
+    unsigned int chunk_size = 1024;
+    size_t num_chunks = (size_t) ceil((float)info->frames/chunk_size);
+    float *res = *result =(float*) malloc(sizeof(float)*num_chunks*chunk_size);
+    float* frame = (float*)malloc(sizeof(float)*info->channels*chunk_size);
 
-    for (int i = 0; i < n;i++)
-    {
-
-        sf_readf_float(sndfile,frame,1024);
-        for (int k = 0; k < 1024; k++)
-        {
+    for (int chunk = 0; chunk < num_chunks;chunk++) {
+        sf_readf_float(sndfile,frame,chunk_size);
+        for (int k = 0; k < chunk_size; k++) {
             float s = 0;
-            for (int j = 0 ; j < info->channels; j++)
-            {
+            for (int j = 0 ; j < info->channels; j++) {
                 s+=frame[k*info->channels + j];
             }
-            res[i*1024+k]=s/info->channels;
+            res[chunk*chunk_size+k]=s/info->channels;
         }
     }
     free(frame);
@@ -68,8 +67,7 @@ void estimate_lag(const char* base_audiofilename, const char* audiofile_1, lages
     SNDFILE* track = sf_open(audiofile_1,SFM_READ,&track_info);
     read_sndfile_average(track,&track_info,&track_b);
     sf_close(track);
-    if (shenidam_get_audio_range(processor,FORMAT_SINGLE,(void*)track_b,track_info.frames,(double)track_info.samplerate,&in,&length))
-    {
+    if (shenidam_get_audio_range(processor,FORMAT_SINGLE,(void*)track_b,track_info.frames,(double)track_info.samplerate,&in,&length)) {
         strcpy(les->errmsg, "ERROR: Error mapping track to base .\n");
         free(track);
     }
