@@ -125,6 +125,11 @@ int extract_audio(const char *input_filename,
                             out[write_p++] = ((float) (((uint8_t*)frame->extended_data[0])[nb]) - 127) / SCHAR_MAX;
                         }
                         break;
+                    case AV_SAMPLE_FMT_S32:
+                        for (int nb=0;nb<plane_size/sizeof(int32_t);nb++){
+                            out[write_p++] = (float) ((int32_t*) frame->extended_data[0])[nb] / INT_MAX;
+                        }
+                        break;
                     default:
                         die("PCM type not supported");
 
