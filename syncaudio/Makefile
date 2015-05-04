@@ -3,7 +3,7 @@ CFLAGS = -std=c99 -Wall
 LDFLAGS = `pkg-config --libs libavformat libavcodec libavutil`
 LDFLAGS += -lm -lshenidam
 
-all : syncaudio avfile2wav
+all : syncaudio
 
 syncaudio : syncaudio.o extract_audio.o
 	$(CC) $^ -o $@ $(LDFLAGS)

@@ -18,17 +18,27 @@ typedef struct {
     const char *filename;
     float *averaged_audio_data;
     unsigned int averaged_audio_ptr;
+    size_t buffer_size;
     unsigned int sample_rate;
 } AudioExtraction;
 
 
-static void audio_callback(float *audiodata, size_t audiolen, AVCodecContext *codecCtx, void *extra_data) {
-    // read an incoming buffer of float audio data, average the channels, write the results into a buffer
+static void average_audio_callback(float *audiodata, size_t audiolen, AVCodecContext *codecCtx, void *extra_data) {
+    // Read an incoming buffer of float audio data, average the channels, write
+    // the results into a buffer.
+    // extra_data should point to an AudioExtraction struct, whose
+    // averaged_audio_data member must be NULL when this callback is first
+    // called.
     AudioExtraction *audio_extraction = (AudioExtraction*)extra_data;
 
     if (audio_extraction->averaged_audio_data == NULL) {
-        //TODO: Use realloc, be less stupid
-        audio_extraction->averaged_audio_data = malloc(sizeof(float) * 10000000);
+        audio_extraction->buffer_size = 1 << 19;
+        audio_extraction->averaged_audio_data = malloc(sizeof(float) * audio_extraction->buffer_size);
+    }
+
+    while (audio_extraction->averaged_audio_ptr + audiolen > audio_extraction->buffer_size) {
+        audio_extraction->buffer_size *= 2;
+        audio_extraction->averaged_audio_data = realloc(audio_extraction->averaged_audio_data, sizeof(float) * audio_extraction->buffer_size);
     }
 
     float total;
@@ -45,7 +55,7 @@ static void audio_callback(float *audiodata, size_t audiolen, AVCodecContext *co
 static void read_audio_data(AudioExtraction *audio_extraction) {
     audio_extraction->averaged_audio_data = NULL;
     audio_extraction->averaged_audio_ptr = 0;
-    extract_audio(audio_extraction->filename, audio_callback, audio_extraction);
+    extract_audio(audio_extraction->filename, average_audio_callback, audio_extraction);
 }
 
 void estimate_lag(const char* base_audiofile_name, const char* track_audiofile_name, LagEstimationStatus *les) {
