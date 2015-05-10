@@ -2,6 +2,7 @@ import os
 import shutil
 from xml.etree import ElementTree as ET
 import wave
+import subprocess
 
 
 class ArdourSessionException(Exception):
@@ -9,6 +10,7 @@ class ArdourSessionException(Exception):
 
 
 class ArdourSession(object):
+    avconv_cmd = "avconv"  # TODO: set this less stupidly
 
     def __init__(self, filename=None):
         """Load and parse session from filename, or from default empty session
@@ -47,12 +49,19 @@ class ArdourSession(object):
 
     def copy_audiofile(self, src_path, dst_filename, session_dir):
         # TODO: Don't copy file more than once
-        # TODO: resample to self.audio_rate if necessary
-        shutil.copy(src_path,
-                    os.path.join(session_dir,
-                                 "interchange",
-                                 self.session_name,
-                                 "audiofiles"))
+        stem, ext = os.path.splitext(dst_filename)
+        output_filename = os.path.join(
+            session_dir,
+            'interchange',
+            self.session_name,
+            'audiofiles',
+            '%s.wav' % (stem, )
+        )
+        subprocess.check_call([
+            self.avconv_cmd,
+            '-i', src_path, '-vn', '-f', 'wav', '-ar', str(self.audio_rate),
+            '-y', output_filename
+        ])
 
 
     def _get_next_id(self):
