@@ -146,9 +146,9 @@
     <Meter start="1|1|0" note-type="4.000000" divisions-per-bar="4.000000" movable="no"/>
   </TempoMap>
   <ControlProtocols>
-    <Protocol name="Open Sound Control (OSC)" active="no"/>
-    <Protocol name="Generic MIDI" active="no"/>
-    <Protocol name="Mackie" active="no"/>
+    <Protocol active="no" name="Open Sound Control (OSC)"/>
+    <Protocol active="no" name="Generic MIDI"/>
+    <Protocol active="no" name="Mackie"/>
   </ControlProtocols>
   <Extra>
     <UI>
@@ -172,7 +172,7 @@
       <Window name="P-28-53" visible="no" x-off="-1" y-off="-1" x-size="-1" y-size="-1" custom-ui="no"/>
       <Window name="P-28-54" visible="no" x-off="-1" y-off="-1" x-size="-1" y-size="-1" custom-ui="no"/>
       <GUIObjectState>
-        <Object id="route 28" color="58981:56856:54077"/>
+        <Object id="route 28" color="42567:58981:54604"/>
         <Object id="rtav 28" height="64" visible="1"/>
         <Object id="automation 49" height="64" visible="0"/>
         <Object id="automation 52" height="64" visible="0"/>
