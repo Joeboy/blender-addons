@@ -26,35 +26,12 @@ class ArdourSession(object):
                 )
             )
         self.session = self.etree.getroot()
-        self.session_audio_rate = int(self.session.attrib.get("sample-rate", "48000"))
+        self.audio_rate = int(self.session.attrib.get("sample-rate", "48000"))
         self.sources = self.session.find("Sources")
         self.regions = self.session.find("Regions")
         self.routes = self.session.find("Routes")
         self.playlists = self.session.find("Playlists")
         self.audio_files = {}
-
-    def write(self, filename=None):
-        if filename:
-            session_dir, filename = os.path.split(os.path.abspath(filename))
-            self.session_name, ext = os.path.splitext(filename)
-            self.session.set("name", self.session_name)
-        elif self.sesson_src_filename:
-            # Write to the original file
-            session_dir, filename = os.path.split(os.path.abspath(self.session_src_filename))
-            self.session_name, ext = os.path.splitext(filename)
-        else:
-            raise ArdourSessionException("Destination filename unknown.")
-        assert ext == '.ardour', "Destination filename should have .ardour extension"
-
-        try:
-            os.makedirs(os.path.join(session_dir, "interchange", self.session_name, "audiofiles"))
-        except:
-            pass
-
-        self.etree.write(os.path.join(session_dir, filename))
-
-        for filepath, fileinfo in self.audio_files.items():
-            self.copy_audiofile(filepath, fileinfo['filename'], session_dir)
 
 
     def add_playlist(self, name):
@@ -62,7 +39,7 @@ class ArdourSession(object):
                 'id': self._get_next_id(),
                 'name': name,
                 'type': "audio",
-#                'orig-track-id': "23", #Not sure what to put in here
+#                'orig-track-id': "23",
                 'frozen': "no",
                 'combine-ops': "0",
         })
@@ -70,8 +47,7 @@ class ArdourSession(object):
 
     def copy_audiofile(self, src_path, dst_filename, session_dir):
         # TODO: Don't copy file more than once
-        # TODO: resample to self.session_audio_rate if necessary
-        # TODO: Use tmp files
+        # TODO: resample to self.audio_rate if necessary
         shutil.copy(src_path,
                     os.path.join(session_dir,
                                  "interchange",
@@ -161,9 +137,9 @@ class ArdourSession(object):
         playlist_region_attrs = region_attrs.copy()
         playlist_region_attrs.update({
             'name': "%s.%d" % (region_name, self.audio_files[full_path]['instances'], ),
-            'position': str(position * self.session_audio_rate),
-            'start': str(start * self.session_audio_rate),
-            'length': str(length * self.session_audio_rate),
+            'position': str(position * self.audio_rate),
+            'start': str(start * self.audio_rate),
+            'length': str(length * self.audio_rate),
         })
 
         return ET.SubElement(playlist, "Region", playlist_region_attrs)
@@ -246,6 +222,30 @@ class ArdourSession(object):
             'speed': '1.000000000000',
         })
         return route
+
+
+    def write(self, filename=None):
+        if filename:
+            session_dir, filename = os.path.split(os.path.abspath(filename))
+            self.session_name, ext = os.path.splitext(filename)
+            self.session.set("name", self.session_name)
+        elif self.sesson_src_filename:
+            # Write to the original file
+            session_dir, filename = os.path.split(os.path.abspath(self.session_src_filename))
+            self.session_name, ext = os.path.splitext(filename)
+        else:
+            raise ArdourSessionException("Destination filename unknown.")
+        assert ext == '.ardour', "Destination filename should have .ardour extension"
+
+        try:
+            os.makedirs(os.path.join(session_dir, "interchange", self.session_name, "audiofiles"))
+        except:
+            pass
+
+        self.etree.write(os.path.join(session_dir, filename))
+
+        for filepath, fileinfo in self.audio_files.items():
+            self.copy_audiofile(filepath, fileinfo['filename'], session_dir)
 
 
 if __name__ == "__main__":

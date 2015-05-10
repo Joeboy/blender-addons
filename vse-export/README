@@ -1,0 +1,26 @@
+Ardour VSE Export
+=================
+
+This is an add-on for Blender, whose purpose is to export audio strips from
+Blender's VSE into a new Ardour session, to allow better sound mixing/editing.
+
+To install, copy it to, or symlink it from, your Blender addons folder and
+enable it via Blender's User Preferences->Add-ons window.
+
+To use it, select "Export VSE to Ardour", either from the Strip menu or the
+spacebar list. It will create an ardour session, called 'ardour-session',
+in the same folder as your .blend file.
+
+
+Things that suck:
+-----------------
+
+* Not really tested or finished. It seems to work on my computer, although I
+  haven't tried using it for real work yet.
+* Only imports the audio strips themselves - no volume / panning data etc
+* Does not resample audio, so if your audio is not recorded at 48kHz you might
+  want to resample the files manually using ffmpeg/avconv or something.
+* I've tested it in Blender 2.74 on Ubuntu 15.04. It might also work in Windows
+  or OSX. Who knows?
+* It will get confused if your project uses multiple files with the same
+  name (but different locations).
