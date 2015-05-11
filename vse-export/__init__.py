@@ -39,6 +39,7 @@ class ArdourVseExport(bpy.types.Operator):
                 sd.audio_filename = os.path.basename(s.filepath)
                 sd.audio_file_location = bpy.path.abspath(s.filepath)
                 sd.channel = s.channel
+                sd.mute = s.mute
                 try:
                     self.blender_sequence_data[sd.channel].append(sd)
                 except KeyError:
@@ -55,12 +56,13 @@ class ArdourVseExport(bpy.types.Operator):
             playlist = ardour_session.add_playlist(track_name)
             ardour_session.add_track(track_name, track_name)
             for clip in clips:
-                ardour_session.import_audiofile(
+                ardour_session.create_region(
                     clip.audio_file_location,
                     playlist,
                     clip.clip_start_time_frames * spf,
                     (clip.clip_start_time_frames - clip.audio_start_time_frames) * spf,
-                    (clip.clip_end_time_frames - clip.clip_start_time_frames) * spf
+                    (clip.clip_end_time_frames - clip.clip_start_time_frames) * spf,
+                    muted = clip.mute,
                 )
         dest = os.path.join(
             bpy.path.abspath("//"),

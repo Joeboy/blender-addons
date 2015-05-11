@@ -74,7 +74,7 @@ class ArdourSession(object):
         return str(self._id_counter)
 
 
-    def import_audiofile(self, filename, playlist, position, start, length):
+    def create_region(self, filename, playlist, position, start, length, muted=False):
         # Add the file, and add it as a source
         # {position} is the beginning of the region (in seconds)
         # {start} is the amount of audio clipped from the start of the region (in seconds)
@@ -147,6 +147,7 @@ class ArdourSession(object):
             'position': str(position * self.audio_rate),
             'start': str(start * self.audio_rate),
             'length': str(length * self.audio_rate),
+            'muted': muted and '1' or '0',
         })
 
         return ET.SubElement(playlist, "Region", playlist_region_attrs)
@@ -259,7 +260,7 @@ if __name__ == "__main__":
     ardour_session = ArdourSession()
     playlist = ardour_session.add_playlist('track1')
     ardour_session.add_track("track1", 'track1')
-    ardour_session.import_audiofile(
+    ardour_session.create_region(
         "./test.wav",
         playlist,
         5.0,
