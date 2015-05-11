@@ -32,10 +32,12 @@ class ArdourVseExport(bpy.types.Operator):
         for s in bpy.context.sequences:
             if s.type == "SOUND":
                 sd = SequenceData()
+                sd.clip_audio_start_frames = s.animation_offset_start
+                sd.clip_audio_end_frames = s.animation_offset_end
                 sd.audio_start_time_frames = s.frame_start - 1
                 sd.audio_duration_frames = s.frame_duration
-                sd.clip_start_time_frames = s.frame_start -1 + s.frame_offset_start
-                sd.clip_end_time_frames = sd.audio_start_time_frames + sd.audio_duration_frames - s.frame_offset_end
+                sd.strip_start_time_frames = s.frame_start -1 + s.frame_offset_start
+                sd.strip_end_time_frames = sd.audio_start_time_frames + sd.audio_duration_frames - s.frame_offset_end
                 sd.audio_filename = os.path.basename(s.filepath)
                 sd.audio_file_location = bpy.path.abspath(s.filepath)
                 sd.channel = s.channel
@@ -51,18 +53,18 @@ class ArdourVseExport(bpy.types.Operator):
         ardour_session = ArdourSession()
         spf = 1.0 / context.scene.render.fps # seconds per frame
         for track_no in self.blender_sequence_data.keys():
-            clips = self.blender_sequence_data[track_no]
+            strips = self.blender_sequence_data[track_no]
             track_name = "Blender-%d" % (track_no, )
             playlist = ardour_session.add_playlist(track_name)
             ardour_session.add_track(track_name, track_name)
-            for clip in clips:
+            for strip in strips:
                 ardour_session.create_region(
-                    clip.audio_file_location,
+                    strip.audio_file_location,
                     playlist,
-                    clip.clip_start_time_frames * spf,
-                    (clip.clip_start_time_frames - clip.audio_start_time_frames) * spf,
-                    (clip.clip_end_time_frames - clip.clip_start_time_frames) * spf,
-                    muted = clip.mute,
+                    strip.strip_start_time_frames * spf,
+                    (strip.strip_start_time_frames - strip.audio_start_time_frames + strip.clip_audio_start_frames) * spf,
+                    (strip.strip_end_time_frames - strip.strip_start_time_frames) * spf,
+                    muted = strip.mute,
                 )
         dest = os.path.join(
             bpy.path.abspath("//"),
