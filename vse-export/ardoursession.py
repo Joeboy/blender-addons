@@ -81,20 +81,19 @@ class ArdourSession(object):
         # {length} is the lengh of the regoin (in seconds)
 
         full_path = os.path.abspath(filename)
-        filename = os.path.basename(filename)
+        # TODO: Account for duplicate filenames in different locations
+        dest_filename = os.path.basename(filename)
+        filename_stem, _ = os.path.splitext(dest_filename)
+        dest_filename = "%s.wav" % (filename_stem,)
 
-        # TODO: Account for duplicate filenames which are not the same file
         if self.audio_files.get(full_path) is None:
-            with wave.open(full_path) as w:
-                nframes = w.getnframes()
-            w.close()
-            self.audio_files[full_path] = {'instances': 0, 'nframes': nframes, 'filename': filename}
+            self.audio_files[full_path] = {'instances': 0, 'dest_filename': dest_filename}
         self.audio_files[full_path]['instances'] += 1
 
         # Add the file as a source:
         source_id = self._get_next_id()
         ET.SubElement(self.sources, "Source", {
-            'name': filename,
+            'name': dest_filename,
             'type': 'audio',
             'flags': '',
             'id': source_id,
@@ -103,9 +102,8 @@ class ArdourSession(object):
         })
 
         # Create a "whole file region"
-        region_name, _ = os.path.splitext(filename)
         region_attrs = {
-            'name': region_name,
+            'name': filename_stem,
             'muted': "0",
             'opaque': "1",
             'locked': "0",
@@ -120,7 +118,7 @@ class ArdourSession(object):
             'position-locked': "0",
             'valid-transients': "0",
             'start': "0",
-            'length': str(self.audio_files[full_path]['nframes']),
+#            'length': str(self.audio_files[full_path]['nframes']),     # Ardour doesn't seem to mind not having this. I think.
             'position': "0",
             'sync-position': "0",
             'ancestral-length': "0",
@@ -145,7 +143,7 @@ class ArdourSession(object):
         # Create a "playlist region"
         playlist_region_attrs = region_attrs.copy()
         playlist_region_attrs.update({
-            'name': "%s.%d" % (region_name, self.audio_files[full_path]['instances'], ),
+            'name': "%s.%d" % (filename_stem, self.audio_files[full_path]['instances'], ),
             'position': str(position * self.audio_rate),
             'start': str(start * self.audio_rate),
             'length': str(length * self.audio_rate),
@@ -254,7 +252,7 @@ class ArdourSession(object):
         self.etree.write(os.path.join(session_dir, filename))
 
         for filepath, fileinfo in self.audio_files.items():
-            self.copy_audiofile(filepath, fileinfo['filename'], session_dir)
+            self.copy_audiofile(filepath, fileinfo['dest_filename'], session_dir)
 
 
 if __name__ == "__main__":
