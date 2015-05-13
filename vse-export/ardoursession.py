@@ -33,7 +33,7 @@ class ArdourSession(object):
         self.regions = self.session.find("Regions")
         self.routes = self.session.find("Routes")
         self.playlists = self.session.find("Playlists")
-        self.audio_files = {}
+        self.audio_files = []
 
 
     def add_playlist(self, name):
@@ -48,14 +48,12 @@ class ArdourSession(object):
 
 
     def copy_audiofile(self, src_path, dst_filename, session_dir):
-        # TODO: Don't copy file more than once
-        stem, ext = os.path.splitext(dst_filename)
         output_filename = os.path.join(
             session_dir,
             'interchange',
             self.session_name,
             'audiofiles',
-            '%s.wav' % (stem, )
+            dst_filename
         )
         subprocess.check_call([
             self.avconv_cmd,
@@ -74,21 +72,16 @@ class ArdourSession(object):
         return str(self._id_counter)
 
 
-    def create_region(self, filename, playlist, position, start, length, muted=False):
+    def create_region(self, src_filename, strip_name, playlist, position, start, length, muted=False):
         # Add the file, and add it as a source
         # {position} is the beginning of the region (in seconds)
         # {start} is the amount of audio clipped from the start of the region (in seconds)
         # {length} is the lengh of the regoin (in seconds)
 
-        full_path = os.path.abspath(filename)
-        # TODO: Account for duplicate filenames in different locations
-        dest_filename = os.path.basename(filename)
-        filename_stem, _ = os.path.splitext(dest_filename)
-        dest_filename = "%s.wav" % (filename_stem,)
+        full_path = os.path.abspath(src_filename)
+        dest_filename = "%s.wav" % (strip_name,)
 
-        if self.audio_files.get(full_path) is None:
-            self.audio_files[full_path] = {'instances': 0, 'dest_filename': dest_filename}
-        self.audio_files[full_path]['instances'] += 1
+        self.audio_files.append((full_path, dest_filename))
 
         # Add the file as a source:
         source_id = self._get_next_id()
@@ -103,7 +96,7 @@ class ArdourSession(object):
 
         # Create a "whole file region"
         region_attrs = {
-            'name': filename_stem,
+            'name': strip_name,
             'muted': "0",
             'opaque': "1",
             'locked': "0",
@@ -143,7 +136,6 @@ class ArdourSession(object):
         # Create a "playlist region"
         playlist_region_attrs = region_attrs.copy()
         playlist_region_attrs.update({
-            'name': "%s.%d" % (filename_stem, self.audio_files[full_path]['instances'], ),
             'position': str(position * self.audio_rate),
             'start': str(start * self.audio_rate),
             'length': str(length * self.audio_rate),
@@ -252,8 +244,8 @@ class ArdourSession(object):
 
         self.etree.write(os.path.join(session_dir, filename))
 
-        for filepath, fileinfo in self.audio_files.items():
-            self.copy_audiofile(filepath, fileinfo['dest_filename'], session_dir)
+        for filepath, dest_filename in self.audio_files:
+            self.copy_audiofile(filepath, dest_filename, session_dir)
 
 
 if __name__ == "__main__":
