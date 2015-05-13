@@ -31,6 +31,7 @@ class ArdourSession(object):
         self.regions = self.session.find("Regions")
         self.routes = self.session.find("Routes")
         self.playlists = self.session.find("Playlists")
+        self.locations = self.session.find("Locations")
         self.audio_files = []
 
 
@@ -220,6 +221,19 @@ class ArdourSession(object):
             'speed': '1.000000000000',
         })
         return route
+
+    def add_marker(self, name, location):
+        """Add a marker, named {name}, at the specified {location} (given in
+        seconds)."""
+        return ET.SubElement(self.locations, "Location", {
+            'id': self._get_next_id(),
+            'name': name,
+            'start': str(int(location * self.audio_rate)),
+            'end': str(int(location * self.audio_rate)),
+            'flags': 'IsMark',
+            'locked': 'no',
+            'position-lock-style': 'AudioTime',
+        });
 
 
     def write(self, filename=None):

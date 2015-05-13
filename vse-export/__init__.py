@@ -45,8 +45,15 @@ class ArdourVseExport(bpy.types.Operator):
                     self.blender_sequence_data[sd.channel] = [sd]
 
 
+    def get_blender_marker_data(self, context):
+        """ Return a sequence of tuples containing the name and frame no of
+        each marker."""
+        self.marker_data = ((m.name, m.frame - context.scene.frame_start) for m in context.scene.timeline_markers)
+
+
     def execute(self, context):
         self.get_blender_sequence_data(context)
+        self.get_blender_marker_data(context)
         ardour_session = ArdourSession()
         spf = 1.0 / context.scene.render.fps # seconds per frame
         for track_no in list(self.blender_sequence_data.keys())[::-1]:
@@ -64,6 +71,9 @@ class ArdourVseExport(bpy.types.Operator):
                     strip.duration_frames * spf,
                     muted = strip.mute,
                 )
+        for marker in self.marker_data:
+            ardour_session.add_marker(marker[0], marker[1] * spf)
+
         dest = os.path.join(
             bpy.path.abspath("//"),
             "ardour-session",
