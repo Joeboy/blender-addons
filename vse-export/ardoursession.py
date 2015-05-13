@@ -1,7 +1,5 @@
 import os
-import shutil
 from xml.etree import ElementTree as ET
-import wave
 import subprocess
 
 
