@@ -22,5 +22,3 @@ Things that suck:
   installed and on your path.
 * I've tested it in Blender 2.74 on Ubuntu 15.04. It might also work in Windows
   or OSX. Who knows?
-* It will get confused if your project uses multiple files with the same
-  name (but different locations).
