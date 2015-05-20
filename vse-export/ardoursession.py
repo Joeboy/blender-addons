@@ -8,7 +8,7 @@ class ArdourSessionException(Exception):
 
 
 class ArdourSession(object):
-    avconv_cmd = "avconv"  # TODO: set this less stupidly
+    ffmpeg_cmd = "ffmpeg"
 
     def __init__(self, filename=None):
         """Load and parse session from filename, or from default empty session
@@ -55,7 +55,7 @@ class ArdourSession(object):
             dst_filename
         )
         subprocess.check_call([
-            self.avconv_cmd,
+            self.ffmpeg_cmd,
             '-i', src_path, '-vn', '-f', 'wav', '-ar', str(self.audio_rate),
             '-y', output_filename
         ])
