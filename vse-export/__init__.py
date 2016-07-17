@@ -35,7 +35,11 @@ class ArdourVseExport(bpy.types.Operator):
                 sd.start_time_frames = s.frame_start + s.frame_offset_start - context.scene.frame_start
                 sd.clip_audio_start_frames = s.animation_offset_start + s.frame_offset_start
                 sd.duration_frames = s.frame_final_duration
-                sd.audio_file_src = bpy.path.abspath(s.filepath)
+                try:
+                    sd.audio_file_src = bpy.path.abspath(s.sound.filepath)
+                except AttributeError:
+                    # for older versions of blender
+                    sd.audio_file_src = bpy.path.abspath(s.filepath)
                 sd.name = s.name
                 sd.channel = s.channel
                 sd.mute = s.mute
