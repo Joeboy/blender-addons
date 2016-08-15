@@ -36,9 +36,17 @@ class SyncAudio(bpy.types.Operator):
         base_strip = selected_sequences[0]
 
         try:
+            active_strip_filepath = bpy.path.abspath(active_strip.sound.filepath)
+            base_strip_filepath = bpy.path.abspath(base_strip.sound.filepath)
+        except AttributeError:
+            # for older versions of blender
+            active_strip_filepath = bpy.path.abspath(active_strip.filepath)
+            base_strip_filepath = bpy.path.abspath(base_strip.filepath)
+
+        try:
             output = subprocess.check_output([executable_name,
-                                     bpy.path.abspath(active_strip.filepath),
-                                     bpy.path.abspath(base_strip.filepath)])
+                                              active_strip_filepath,
+                                              base_strip_filepath])
         except subprocess.CalledProcessError as e:
             self.report({'ERROR'}, str(e))
             return {'CANCELLED'}
