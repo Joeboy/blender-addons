@@ -17,7 +17,7 @@ bl_info = {
 
 executable_name = os.path.join(os.path.dirname(__file__), "syncaudio")
 
-output_re = re.compile(b'^lag = -?\d+ samples, (?P<seconds>-?[0-9+]\.?\d*) seconds')
+output_re = re.compile(b'^lag = -?\d+ samples, (?P<seconds>-?\d+\.?\d*) seconds')
 
 
 
